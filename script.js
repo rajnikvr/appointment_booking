@@ -2,6 +2,8 @@ import express from "express";
 import bodyParser from "body-parser";
 import axios from "axios";
 import dotenv from "dotenv";
+import fs from 'fs';
+import path from 'path';
 
 dotenv.config(); // Load environment variables
 
@@ -16,7 +18,7 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const WHATSAPP_API_URL = process.env.WHATSAPP_API_URL;
 const WHATSAPP_APP_KEY = process.env.WHATSAPP_API_KEY;
 const WHATSAPP_AUTH_KEY = process.env.WHATSAPP_AUTH_KEY;
-
+const __dirname = path.dirname(new URL(import.meta.url).pathname);
 // Google Gemini API URL
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
 
@@ -57,7 +59,6 @@ const askGemini = async (question) => {
     }
 };
 
-// Webhook Endpoint: Receives a question and sends the answer via WhatsApp
 app.post("/webhook", async (req, res) => {
     console.log("Received Webhook Data:", req.body);
 
@@ -70,13 +71,40 @@ app.post("/webhook", async (req, res) => {
     const answer = await askGemini(question);
 
     // Send the answer to the user via WhatsApp
-    const whatsappResponse = await sendWhatsAppMessage(phone, answer);
+    // const whatsappResponse = await sendWhatsAppMessage(phone, answer);
 
-    // Respond back with the details
-    res.json({ phone, question, answer, whatsappResponse });
+    // Prepare the response data to store in the file
+    const responseData = {
+        phone,
+        question,
+        answer,
+        // whatsappResponse,
+        timestamp: new Date().toISOString(),
+    };
+
+    // Convert the response data to a string (JSON format for easy reading)
+    const responseDataString = JSON.stringify(responseData, null, 2);
+
+    // Use absolute path based on process.cwd()
+    const filePath = path.join(process.cwd(), 'webhook_responses.txt');
+
+    // Append the response data to the file
+    fs.writeFile(filePath, responseDataString + '\n\n', (err) => {
+        if (err) {
+            console.error("Error writing to file:", err);
+            return res.status(500).json({ error: "Failed to log webhook data" });
+        }
+
+        // Respond back with the details
+        res.json({ phone, question, answer });
+    });
 });
+
+
 
 // Start the server
 app.listen(PORT, () => {
     console.log(`Webhook server is running on http://localhost:${PORT}`);
 });
+
+console.log("Current working directory:", process.cwd());

@@ -1,0 +1,7 @@
+{
+  "phone": 9537897620,
+  "question": "Who is the prime minister of india",
+  "answer": "Narendra Modi",
+  "timestamp": "2025-02-03T08:55:12.935Z"
+}
+
